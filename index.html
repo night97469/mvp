@@ -229,34 +229,59 @@
       });
     }
 
-    fetch(csvUrl)
-      .then(r => r.text())
-      .then(csvText => {
-        const parsed = Papa.parse(csvText, { header: true });
-        allEvents = parsed.data.map(row => {
-          const lat = parseFloat(row.Latitude);
-          const lng = parseFloat(row.Longitude);
-          return {
-            lat,
-            lng,
-            title: row.Titre || 'Événement',
-            description: row.Description || '',
-            startDate: parseCsvDate(row['Date de début']),
-            endDate: parseCsvDate(row['Date de fin']),
-            rawStartDate: row['Date de début'],
-            rawEndDate: row['Date de fin'],
-            highlight: row.Highlight || ''
-          };
-        }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng));
-        setFilter('today');
-      })
-      .catch(err => {
-        console.error('Erreur CSV:', err);
-        alert('Erreur chargement des événements');
-      });
+fetch(csvUrl)
+  .then(r => r.text())
+  .then(csvText => {
+    const parsed = Papa.parse(csvText, { header: true });
+    
+    // DEBUG: affiche les 3 premières lignes brutes
+    console.log('Premières lignes CSV:', parsed.data.slice(0, 3));
+    
+    allEvents = parsed.data.map((row, idx) => {
+      const lat = parseFloat(row.Latitude);
+      const lng = parseFloat(row.Longitude);
+      const startRaw = row['Date de début'];
+      const endRaw = row['Date de fin'];
+      const startParsed = parseCsvDate(startRaw);
+      const endParsed = parseCsvDate(endRaw);
+      
+      // DEBUG: affiche parsing pour les 3 premiers events
+      if (idx < 3) {
+        console.log(`Event ${idx}:`, {
+          titre: row.Titre,
+          startRaw,
+          startParsed,
+          endRaw,
+          endParsed,
+          lat,
+          lng,
+          highlight: row.Highlight
+        });
+      }
+      
+      return {
+        lat,
+        lng,
+        title: row.Titre || 'Événement',
+        description: row.Description || '',
+        startDate: startParsed,
+        endDate: endParsed,
+        highlight: row.Highlight || ''
+      };
+    }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng));
+    
+    console.log('Total events après filter:', allEvents.length);
+    setFilter('today');
+  })
+  .catch(err => {
+    console.error('Erreur CSV:', err);
+    alert('Erreur chargement des événements');
+  });
+
   </script>
 </body>
 </html>
+
 
 
 
