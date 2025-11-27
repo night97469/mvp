@@ -162,12 +162,24 @@
     let markersLayer = L.layerGroup().addTo(map);
 
     function parseCsvDate(d) {
-      if (!d || d.length !== 8) return null;
-      const day = parseInt(d.slice(0,2), 10);
-      const month = parseInt(d.slice(2,4), 10) - 1;
-      const year = parseInt(d.slice(4,8), 10);
-      return new Date(year, month, day);
-    }
+  if (!d) return null;
+
+  // Cas 1 : format compact JJMMAAAA (ex: 12092025)
+  if (/^\d{8}$/.test(d)) {
+    const day = parseInt(d.slice(0, 2), 10);
+    const month = parseInt(d.slice(2, 4), 10) - 1;
+    const year = parseInt(d.slice(4, 8), 10);
+    return new Date(year, month, day);
+  }
+
+  // Cas 2 : formats avec séparateurs (12/09/2025, 12-09-2025, 2025-09-12, etc.)
+  // On laisse le moteur JS parser puis on normalise
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return null;
+
+  return new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+}
+
 
     function setFilter(filter) {
       currentFilter = filter;
@@ -240,3 +252,4 @@
   </script>
 </body>
 </html>
+
