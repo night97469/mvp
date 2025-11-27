@@ -240,6 +240,8 @@
             description: row.Description || '',
             startDate: parseCsvDate(row['Date de début']),
             endDate: parseCsvDate(row['Date de fin']),
+            rawStartDate: row['Date de début'],
+            rawEndDate: row['Date de fin'],
             highlight: row.Highlight || ''
           };
         }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng));
@@ -252,4 +254,5 @@
   </script>
 </body>
 </html>
+
 
