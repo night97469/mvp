@@ -4,7 +4,7 @@
   <title>Night974 - On va où ?</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
-    #map { height: 90vh; width: 100%; }
+    #map { height: 80vh; width: 100%; }
     #popupModal {
       display: none;
       position: fixed;
@@ -57,10 +57,31 @@
     }
     h1 { text-align: center; margin: 10px 0; color: #333; }
     #eventTitle { margin: 0; font-size: 22px; }
+    #filters { text-align:center; margin-bottom:10px; }
+    #filters button {
+      margin: 0 5px;
+      padding: 6px 10px;
+      border-radius: 16px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+      background: #fff;
+    }
+    #filters button.active {
+      background: #667eea;
+      color: white;
+      border-color: #667eea;
+    }
   </style>
 </head>
 <body>
   <h1>🌙 On va où ce soir? By Night974</h1>
+
+  <div id="filters">
+    <button id="btn-today" onclick="setFilter('today')">Aujourd'hui</button>
+    <button id="btn-weekend" onclick="setFilter('weekend')">Ce week-end</button>
+    <button id="btn-immanquable" onclick="setFilter('immanquable')">Immanquable</button>
+  </div>
+
   <div id="map"></div>
 
   <!-- Popup Description -->
@@ -82,44 +103,42 @@
     const eventTitle = document.getElementById('eventTitle');
     const eventDescription = document.getElementById('eventDescription');
 
+    const btnToday = document.getElementById('btn-today');
+    const btnWeekend = document.getElementById('btn-weekend');
+    const btnImmanquable = document.getElementById('btn-immanquable');
+
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
 
-    
-// Transforme texte brut -> HTML avec liens cliquables + sauts de ligne
-function formatDescriptionWithLinks(text) {
-  if (!text) return 'Aucune description disponible.';
+    let allEvents = [];
+    let currentFilter = 'today';
 
-  // 1) Échapper le HTML brut
-  let safeText = text.replace(/&/g, '&amp;')
-                     .replace(/</g, '&lt;')
-                     .replace(/>/g, '&gt;');
+    // Texte -> HTML avec liens cliquables + sauts de ligne
+    function formatDescriptionWithLinks(text) {
+      if (!text) return 'Aucune description disponible.';
 
-  // 2) Gérer d'abord les liens Markdown du type [texte](url)
-  safeText = safeText.replace(
-    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
-  );
+      let safeText = text.replace(/&/g, '&amp;')
+                         .replace(/</g, '&lt;')
+                         .replace(/>/g, '&gt;');
 
-  // 3) Puis transformer les URL "nues" http(s) qui ne sont PAS déjà dans un lien
-  safeText = safeText.replace(
-    /(^|[\s])(https?:\/\/[^\s<]+)/g,
-    '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
-  );
+      safeText = safeText.replace(
+        /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+        '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+      );
 
-  // 4) Et les www. nues (hors lien déjà créé)
-  safeText = safeText.replace(
-    /(^|[\s])(www\.[^\s<]+)/g,
-    '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>'
-  );
+      safeText = safeText.replace(
+        /(^|[\s])(https?:\/\/[^\s<]+)/g,
+        '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
+      );
 
-  // 5) Sauts de ligne
-  safeText = safeText.replace(/\n/g, '<br>');
+      safeText = safeText.replace(
+        /(^|[\s])(www\.[^\s<]+)/g,
+        '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>'
+      );
 
-  return safeText;
-}
+      safeText = safeText.replace(/\n/g, '<br>');
+      return safeText;
+    }
 
-
-    // Affiche titre + description dans la popup
     function showEventDetails(title, description) {
       eventTitle.textContent = title;
       eventDescription.innerHTML = formatDescriptionWithLinks(description);
@@ -140,24 +159,79 @@ function formatDescriptionWithLinks(text) {
       L.marker(e.latlng).addTo(map).bindPopup("🟢 Vous êtes ici").openPopup();
     });
 
+    let markersLayer = L.layerGroup().addTo(map);
+
+    function parseCsvDate(d) {
+      if (!d || d.length !== 8) return null;
+      const day = parseInt(d.slice(0,2), 10);
+      const month = parseInt(d.slice(2,4), 10) - 1;
+      const year = parseInt(d.slice(4,8), 10);
+      return new Date(year, month, day);
+    }
+
+    function setFilter(filter) {
+      currentFilter = filter;
+      btnToday.classList.remove('active');
+      btnWeekend.classList.remove('active');
+      btnImmanquable.classList.remove('active');
+      if (filter === 'today') btnToday.classList.add('active');
+      if (filter === 'weekend') btnWeekend.classList.add('active');
+      if (filter === 'immanquable') btnImmanquable.classList.add('active');
+      refreshMarkers();
+    }
+
+    function refreshMarkers() {
+      markersLayer.clearLayers();
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const day = today.getDay();
+      const saturdayOffset = (6 - day + 7) % 7;
+      const sundayOffset = (7 - day) % 7;
+      const saturday = new Date(today); saturday.setDate(today.getDate() + saturdayOffset);
+      const sunday = new Date(today);   sunday.setDate(today.getDate() + sundayOffset);
+
+      allEvents.forEach(ev => {
+        const start = ev.startDate;
+        const end = ev.endDate || ev.startDate;
+        if (!start) return;
+
+        let keep = false;
+        if (currentFilter === 'today') {
+          keep = (start <= today && end >= today);
+        } else if (currentFilter === 'weekend') {
+          keep = (end >= saturday && start <= sunday);
+        } else if (currentFilter === 'immanquable') {
+          keep = ev.highlight && ev.highlight.trim() !== '';
+        }
+
+        if (!keep) return;
+
+        const marker = L.marker([ev.lat, ev.lng]).addTo(markersLayer);
+        marker.bindPopup(`<b>${ev.title}</b><br>Cliquez pour les détails`);
+        marker.on('mouseover', function(){ this.openPopup(); });
+        marker.on('click', function(){ showEventDetails(ev.title, ev.description); });
+      });
+    }
+
     fetch(csvUrl)
       .then(r => r.text())
       .then(csvText => {
         const parsed = Papa.parse(csvText, { header: true });
-        parsed.data.forEach(ev => {
-          const lat = parseFloat(ev.Latitude);
-          const lng = parseFloat(ev.Longitude);
-          const title = ev.Titre || 'Événement';
-          const description = ev.Description || '';
-
-          if (!isNaN(lat) && !isNaN(lng)) {
-            const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup(`<b>${title}</b><br>Cliquez pour les détails`);
-
-            marker.on('mouseover', function() { this.openPopup(); });
-            marker.on('click', function() { showEventDetails(title, description); });
-          }
-        });
+        allEvents = parsed.data.map(row => {
+          const lat = parseFloat(row.Latitude);
+          const lng = parseFloat(row.Longitude);
+          return {
+            lat,
+            lng,
+            title: row.Titre || 'Événement',
+            description: row.Description || '',
+            startDate: parseCsvDate(row['Date de début']),
+            endDate: parseCsvDate(row['Date de fin']),
+            highlight: row.Highlight || ''
+          };
+        }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng));
+        setFilter('today');
       })
       .catch(err => {
         console.error('Erreur CSV:', err);
@@ -166,6 +240,3 @@ function formatDescriptionWithLinks(text) {
   </script>
 </body>
 </html>
-
-
-
