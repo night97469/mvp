@@ -44,7 +44,7 @@
 
           if (!isNaN(lat) && !isNaN(lng)) {
             const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup(`<b>${title}</b><br><a href="${url}" target="_blank" rel="noopener">Voir l'événement</a>`);
+            marker.bindPopup(`<b>${title}</b><br><a href="${url}" target="_blank" rel="opener">J'y vais!</a>`);
             marker.on('click', function() {
               window.open(url, '_blank', 'noopener');
             });
@@ -55,3 +55,4 @@
   </script>
 </body>
 </html>
+
