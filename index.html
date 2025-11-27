@@ -56,25 +56,80 @@
       backdrop-filter: blur(10px);
     }
     h1 { text-align: center; margin: 10px 0; color: #333; }
-    #eventTitle { margin: 0 0 15px 0; font-size: 24px; }
+    #eventTitle { margin: 0; font-size: 22px; }
   </style>
 </head>
 <body>
   <h1>🌙 On va où ce soir? Night974</h1>
   <div id="map"></div>
 
-  <!-- Popup Modal avec Description -->
+  <!-- Popup Description -->
   <div id="popupModal">
     <div id="popupContent">
       <div id="popupClose">×</div>
       <div id="popupHeader">
         <h2 id="eventTitle">Événement</h2>
       </div>
-      <div id="eventDescription">
-        Chargement...
-      </div>
+      <div id="eventDescription">Chargement...</div>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script>
+    const popupModal = document.getElementById('popupModal');
+    const popupClose = document.getElementById('popupClose');
+    const eventTitle = document.getElementById('eventTitle');
+    const eventDescription = document.getElementById('eventDescription');
+
+    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
+
+    // Affiche titre + description dans la popup
+    function showEventDetails(title, description) {
+      eventTitle.textContent = title;
+      eventDescription.innerHTML = description
+        ? description.replace(/\n/g, '<br>')
+        : 'Aucune description disponible.';
+      popupModal.style.display = 'flex';
+    }
+
+    popupClose.onclick = () => popupModal.style.display = 'none';
+    popupModal.onclick = (e) => { if (e.target === popupModal) popupModal.style.display = 'none'; };
+
+    const map = L.map('map').setView([-20.88, 55.47], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18,
+      attribution: '© OpenStreetMap contributors | Night974'
+    }).addTo(map);
+
+    map.locate({ setView: true, maxZoom: 13 });
+    map.on('locationfound', e => {
+      L.marker(e.latlng).addTo(map).bindPopup("🟢 Vous êtes ici").openPopup();
+    });
+
+    fetch(csvUrl)
+      .then(r => r.text())
+      .then(csvText => {
+        const parsed = Papa.parse(csvText, { header: true });
+        parsed.data.forEach(ev => {
+          const lat = parseFloat(ev.Latitude);
+          const lng = parseFloat(ev.Longitude);
+          const title = ev.Titre || 'Événement';
+          const description = ev.Description || '';
+
+          if (!isNaN(lat) && !isNaN(lng)) {
+            const marker = L.marker([lat, lng]).addTo(map);
+            marker.bindPopup(`<b>${title}</b><br>Cliquez pour les détails`);
+
+            marker.on('mouseover', function() { this.openPopup(); });
+            marker.on('click', function() { showEventDetails(title, description); });
+          }
+        });
+      })
+      .catch(err => {
+        console.error('Erreur CSV:', err);
+        alert('Erreur chargement des événements');
+      });
+  </script>
+</body>
+</html>
