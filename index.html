@@ -83,31 +83,41 @@
     const eventDescription = document.getElementById('eventDescription');
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
+
+    
 // Transforme texte brut -> HTML avec liens cliquables + sauts de ligne
 function formatDescriptionWithLinks(text) {
   if (!text) return 'Aucune description disponible.';
 
+  // 1) Échapper le HTML brut
   let safeText = text.replace(/&/g, '&amp;')
                      .replace(/</g, '&lt;')
                      .replace(/>/g, '&gt;');
 
-  // URLs complètes http(s)
+  // 2) Gérer d'abord les liens Markdown du type [texte](url)
   safeText = safeText.replace(
-    /(https?:\/\/[^\s]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
   );
 
-  // URLs type www.
+  // 3) Puis transformer les URL "nues" http(s) qui ne sont PAS déjà dans un lien
   safeText = safeText.replace(
-    /\b(www\.[^\s]+)/g,
-    '<a href="https://$1" target="_blank" rel="noopener noreferrer">$1</a>'
+    /(^|[\s])(https?:\/\/[^\s<]+)/g,
+    '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
   );
 
-  // Sauts de ligne
+  // 4) Et les www. nues (hors lien déjà créé)
+  safeText = safeText.replace(
+    /(^|[\s])(www\.[^\s<]+)/g,
+    '$1<a href="https://$2" target="_blank" rel="noopener noreferrer">$2</a>'
+  );
+
+  // 5) Sauts de ligne
   safeText = safeText.replace(/\n/g, '<br>');
 
   return safeText;
 }
+
 
     // Affiche titre + description dans la popup
     function showEventDetails(title, description) {
@@ -156,5 +166,6 @@ function formatDescriptionWithLinks(text) {
   </script>
 </body>
 </html>
+
 
 
