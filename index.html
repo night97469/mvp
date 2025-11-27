@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Night974 Mini MVP - Description dans popup</title>
+  <title>Night974 - On va où ?</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 90vh; width: 100%; }
@@ -60,7 +60,7 @@
   </style>
 </head>
 <body>
-  <h1>🌙 On va où ce soir? Night974</h1>
+  <h1>🌙 On va où ce soir? By Night974</h1>
   <div id="map"></div>
 
   <!-- Popup Description -->
@@ -99,7 +99,7 @@
     const map = L.map('map').setView([-20.88, 55.47], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
-      attribution: '© OpenStreetMap contributors | Night974'
+      attribution: '© OpenStreetMap contributors | @Night974'
     }).addTo(map);
 
     map.locate({ setView: true, maxZoom: 13 });
@@ -133,3 +133,4 @@
   </script>
 </body>
 </html>
+
