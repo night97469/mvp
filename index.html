@@ -209,7 +209,7 @@ function parseCsvDate(d) {
 
         let keep = false;
         if (currentFilter === 'today') {
-          keep = (start <= today && end >= today);
+          keep = (end >= today);
         } else if (currentFilter === 'weekend') {
           keep = (end >= saturday && start <= sunday);
         } else if (currentFilter === 'immanquable') {
@@ -277,6 +277,7 @@ fetch(csvUrl)
   </script>
 </body>
 </html>
+
 
 
 
