@@ -83,13 +83,36 @@
     const eventDescription = document.getElementById('eventDescription');
 
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
+// Transforme texte brut -> HTML avec liens cliquables + sauts de ligne
+function formatDescriptionWithLinks(text) {
+  if (!text) return 'Aucune description disponible.';
+
+  let safeText = text.replace(/&/g, '&amp;')
+                     .replace(/</g, '&lt;')
+                     .replace(/>/g, '&gt;');
+
+  // URLs complètes http(s)
+  safeText = safeText.replace(
+    /(https?:\/\/[^\s]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+
+  // URLs type www.
+  safeText = safeText.replace(
+    /\b(www\.[^\s]+)/g,
+    '<a href="https://$1" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+
+  // Sauts de ligne
+  safeText = safeText.replace(/\n/g, '<br>');
+
+  return safeText;
+}
 
     // Affiche titre + description dans la popup
     function showEventDetails(title, description) {
       eventTitle.textContent = title;
-      eventDescription.innerHTML = description
-        ? description.replace(/\n/g, '<br>')
-        : 'Aucune description disponible.';
+      eventDescription.innerHTML = formatDescriptionWithLinks(description);
       popupModal.style.display = 'flex';
     }
 
@@ -133,4 +156,5 @@
   </script>
 </body>
 </html>
+
 
