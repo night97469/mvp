@@ -37,16 +37,16 @@
       .then(csvText => {
         const data = Papa.parse(csvText, {header: true});
         data.data.forEach(event => {
-          const lat = parseFloat(event.lat || event.Latitude);
-          const lng = parseFloat(event.lng || event.Longitude);
-          const title = event.Titre || event.title || 'Événement';
+          const lat = parseFloat(event.Latitude);
+          const lng = parseFloat(event.Longitude);
+          const title = event.Titre || 'Événement';
           const url = event.lien || '#';
 
           if (!isNaN(lat) && !isNaN(lng)) {
             const marker = L.marker([lat, lng]).addTo(map);
-            marker.bindPopup(`<b>${title}</b><br><a href="${url}">Voir l'événement</a>`);
+            marker.bindPopup(`<b>${title}</b><br><a href="${url}" target="_blank" rel="noopener">Voir l'événement</a>`);
             marker.on('click', function() {
-              window.location.href = url;
+              window.open(url, '_blank', 'noopener');
             });
           }
         });
