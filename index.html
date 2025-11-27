@@ -84,7 +84,6 @@
 
   <div id="map"></div>
 
-  <!-- Popup Description -->
   <div id="popupModal">
     <div id="popupContent">
       <div id="popupClose">×</div>
@@ -112,7 +111,6 @@
     let allEvents = [];
     let currentFilter = 'today';
 
-    // Texte -> HTML avec liens cliquables + sauts de ligne
     function formatDescriptionWithLinks(text) {
       if (!text) return 'Aucune description disponible.';
 
@@ -161,24 +159,19 @@
 
     let markersLayer = L.layerGroup().addTo(map);
 
-function parseCsvDate(d) {
-  if (!d || typeof d !== 'string') return null;
-
-  // Format: DD/MM/YYYY HH:MM:SS (ex: 27/11/2025 22:00:00)
-  const match = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{0,2}):?(\d{0,2})?/);
-  if (match) {
-    const day = parseInt(match[1], 10);
-    const month = parseInt(match[2], 10) - 1; // mois 0-indexed
-    const year = parseInt(match[3], 10);
-    const hour = parseInt(match[4], 10) || 0;
-    const min = parseInt(match[5], 10) || 0;
-    return new Date(year, month, day, hour, min, 0);
-  }
-
-  return null;
-}
-
-
+    function parseCsvDate(d) {
+      if (!d || typeof d !== 'string') return null;
+      const match = d.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{0,2}):?(\d{0,2})?/);
+      if (match) {
+        const day = parseInt(match[1], 10);
+        const month = parseInt(match[2], 10) - 1;
+        const year = parseInt(match[3], 10);
+        const hour = parseInt(match[4], 10) || 0;
+        const min = parseInt(match[5], 10) || 0;
+        return new Date(year, month, day, hour, min, 0);
+      }
+      return null;
+    }
 
     function setFilter(filter) {
       currentFilter = filter;
@@ -199,10 +192,17 @@ function parseCsvDate(d) {
       const day = today.getDay();
       const saturdayOffset = (6 - day + 7) % 7;
       const sundayOffset = (7 - day) % 7;
-      const saturday = new Date(today); saturday.setDate(today.getDate() + saturdayOffset);
-      const sunday = new Date(today);   sunday.setDate(today.getDate() + sundayOffset);
+      const saturday = new Date(today);
+      saturday.setDate(today.getDate() + saturdayOffset);
+      const sunday = new Date(today);
+      sunday.setDate(today.getDate() + sundayOffset);
+
+      let markerCount = 0;
+      const maxMarkers = 100;
 
       allEvents.forEach(ev => {
+        if (markerCount >= maxMarkers) return;
+
         const start = ev.startDate;
         const end = ev.endDate || ev.startDate;
         if (!start) return;
@@ -220,68 +220,40 @@ function parseCsvDate(d) {
 
         const marker = L.marker([ev.lat, ev.lng]).addTo(markersLayer);
         marker.bindPopup(`<b>${ev.title}</b><br>Cliquez pour les détails`);
-        marker.on('mouseover', function(){ this.openPopup(); });
-        marker.on('click', function(){ showEventDetails(ev.title, ev.description); });
+        marker.on('mouseover', function() { this.openPopup(); });
+        marker.on('click', function() { showEventDetails(ev.title, ev.description); });
+        markerCount++;
       });
+
+      console.log(`Affichage ${markerCount} markers pour filtre: ${currentFilter}`);
     }
 
-fetch(csvUrl)
-  .then(r => r.text())
-  .then(csvText => {
-    const parsed = Papa.parse(csvText, { header: true });
-    
-    // DEBUG: affiche les 3 premières lignes brutes
-    console.log('Premières lignes CSV:', parsed.data.slice(0, 3));
-    
-    allEvents = parsed.data.map((row, idx) => {
-      const lat = parseFloat(row.Latitude);
-      const lng = parseFloat(row.Longitude);
-      const startRaw = row['Date de début'];
-      const endRaw = row['Date de fin'];
-      const startParsed = parseCsvDate(startRaw);
-      const endParsed = parseCsvDate(endRaw);
-      
-      // DEBUG: affiche parsing pour les 3 premiers events
-      if (idx < 3) {
-        console.log(`Event ${idx}:`, {
-          titre: row.Titre,
-          startRaw,
-          startParsed,
-          endRaw,
-          endParsed,
-          lat,
-          lng,
-          highlight: row.Highlight
-        });
-      }
-      
-      return {
-        lat,
-        lng,
-        title: row.Titre || 'Événement',
-        description: row.Description || '',
-        startDate: startParsed,
-        endDate: endParsed,
-        highlight: row.Highlight || ''
-      };
-    }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng));
-    
-    console.log('Total events après filter:', allEvents.length);
-    setFilter('today');
-  })
-  .catch(err => {
-    console.error('Erreur CSV:', err);
-    alert('Erreur chargement des événements');
-  });
+    fetch(csvUrl)
+      .then(r => r.text())
+      .then(csvText => {
+        const parsed = Papa.parse(csvText, { header: true });
+        
+        allEvents = parsed.data.map(row => {
+          const lat = parseFloat(row.Latitude);
+          const lng = parseFloat(row.Longitude);
+          return {
+            lat,
+            lng,
+            title: row.Titre || 'Événement',
+            description: row.Description || '',
+            startDate: parseCsvDate(row['Date de début']),
+            endDate: parseCsvDate(row['Date de fin']),
+            highlight: row.Highlight || ''
+          };
+        }).filter(ev => !isNaN(ev.lat) && !isNaN(ev.lng) && ev.startDate);
 
+        console.log('Total events:', allEvents.length);
+        setFilter('today');
+      })
+      .catch(err => {
+        console.error('Erreur CSV:', err);
+        alert('Erreur chargement des événements');
+      });
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
