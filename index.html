@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Night974 Mini MVP - Fonctionnel</title>
+  <title>Night974 Mini MVP - Description dans popup</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 90vh; width: 100%; }
@@ -10,141 +10,71 @@
       position: fixed;
       z-index: 10000;
       left: 0; top: 0; width: 100%; height: 100%;
-      background-color: rgba(0,0,0,0.5);
+      background-color: rgba(0,0,0,0.8);
       justify-content: center; align-items: center;
+      padding: 20px;
     }
     #popupContent {
       position: relative;
+      max-width: 600px;
+      max-height: 70vh;
       width: 90%;
-      height: 90%;
       background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      overflow: hidden;
     }
-    #popupContent iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 8px;
+    #eventDescription {
+      padding: 30px;
+      max-height: 60vh;
+      overflow-y: auto;
+      line-height: 1.6;
+      font-size: 16px;
+    }
+    #popupHeader {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      margin: 0;
     }
     #popupClose {
       position: absolute;
-      top: 10px; right: 15px;
-      font-size: 24px;
+      top: 15px; right: 20px;
+      font-size: 28px;
       font-weight: bold;
       cursor: pointer;
       user-select: none;
       z-index: 10001;
-      background: rgba(0,0,0,0.5);
+      background: rgba(255,255,255,0.2);
       color: white;
-      width: 30px;
-      height: 30px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      backdrop-filter: blur(10px);
     }
-    h1 { text-align: center; margin: 10px 0; }
+    h1 { text-align: center; margin: 10px 0; color: #333; }
+    #eventTitle { margin: 0 0 15px 0; font-size: 24px; }
   </style>
 </head>
 <body>
   <h1>🌙 On va où ce soir? Night974</h1>
   <div id="map"></div>
 
-  <!-- Popup Modal -->
+  <!-- Popup Modal avec Description -->
   <div id="popupModal">
     <div id="popupContent">
       <div id="popupClose">×</div>
-      <iframe id="popupIframe" src=""></iframe>
+      <div id="popupHeader">
+        <h2 id="eventTitle">Événement</h2>
+      </div>
+      <div id="eventDescription">
+        Chargement...
+      </div>
     </div>
   </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-  <script>
-    // Éléments DOM (déclarés AVANT utilisation)
-    const popupModal = document.getElementById('popupModal');
-    const popupClose = document.getElementById('popupClose');
-    const popupIframe = document.getElementById('popupIframe');
-    
-    const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
-
-    // Fonction globale pour ouvrir popup (accessible partout)
-    window.openPopup = function(url) {
-      console.log('Ouverture popup:', url); // Debug
-      popupIframe.src = url;
-      popupModal.style.display = 'flex';
-    };
-
-    // Fermeture popup
-    popupClose.onclick = () => {
-      popupIframe.src = '';
-      popupModal.style.display = 'none';
-    };
-
-    popupModal.onclick = (e) => {
-      if (e.target === popupModal) {
-        popupClose.onclick();
-      }
-    };
-
-    // Initialisation carte
-    const map = L.map('map').setView([-20.88, 55.47], 10); // Centré Réunion
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '© OpenStreetMap contributors | Night974'
-    }).addTo(map);
-
-    // Géolocalisation
-    map.locate({ setView: true, maxZoom: 13 });
-    map.on('locationfound', function(e) {
-      L.marker(e.latlng).addTo(map)
-        .bindPopup("🟢 Vous êtes ici")
-        .openPopup();
-    });
-    map.on('locationerror', function() {
-      console.log('Géolocalisation échouée');
-    });
-
-    // Chargement CSV
-    fetch(csvUrl)
-      .then(response => response.text())
-      .then(csvText => {
-        const data = Papa.parse(csvText, { header: true });
-        console.log('Données CSV:', data.data.length, 'événements'); // Debug
-        
-        let markerCount = 0;
-        data.data.forEach(event => {
-          const lat = parseFloat(event.Latitude);
-          const lng = parseFloat(event.Longitude);
-          const title = event.Titre || 'Événement';
-          const url = event.lien || '#';
-
-          if (!isNaN(lat) && !isNaN(lng) && url !== '#') {
-            const marker = L.marker([lat, lng]).addTo(map);
-            
-            marker.bindPopup(`<b>${title}</b><br>Cliquez pour ouvrir`);
-            
-            // SURVOL
-            marker.on('mouseover', function() {
-              this.openPopup();
-            });
-            
-            // CLIC - FONCTIONNE MAINTENANT !
-            marker.on('click', function() {
-              console.log('Clic marker:', title, url); // Debug
-              window.openPopup(url);
-            });
-            
-            markerCount++;
-          }
-        });
-        console.log('Markers ajoutés:', markerCount); // Debug
-      })
-      .catch(err => {
-        console.error('Erreur CSV:', err);
-        alert('Erreur chargement événements');
-      });
-  </script>
-</body>
-</html>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script
