@@ -7,7 +7,7 @@
     #map { height: 90vh; width: 100%; }
     /* Styles de la popup */
     #popupModal {
-      display: none; /* cachée par défaut */
+      display: none;
       position: fixed;
       z-index: 10000;
       left: 0; top: 0; width: 100%; height: 100%;
@@ -35,6 +35,7 @@
       font-weight: bold;
       cursor: pointer;
       user-select: none;
+      z-index: 10001;
     }
   </style>
 </head>
@@ -53,6 +54,7 @@
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
+    // ✅ CONSTANTE URL DÉCLARÉE EN PREMIER
     const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzr8uxhlBcn-vHkNGSmM6CCz3qlMN54YOtTSuitdIwv9K2zIpy9G-JtpAJr3me2qCYjvFYHqX6Q-Jp/pub?gid=0&single=true&output=csv';
 
     const map = L.map('map').fitWorld();
@@ -84,7 +86,6 @@
       popupModal.style.display = 'none';
     };
 
-    // Ouvrir la popup avec URL dans iframe
     function openPopup(url) {
       popupIframe.src = url;
       popupModal.style.display = 'flex';
@@ -103,22 +104,25 @@
           if (!isNaN(lat) && !isNaN(lng)) {
             const marker = L.marker([lat, lng]).addTo(map);
 
-            marker.bindPopup(`<b>${title}</b><br><a href="#" onclick="return false;">Voir l'événement</a>`);
+            marker.bindPopup(`<b>${title}</b><br>Survolez pour détails`);
 
+            // Survol : ouvre popup info (sans fermer au mouseout)
             marker.on('mouseover', function () {
               this.openPopup();
             });
 
-            // Ouvre la popup iframe au clic
             marker.on('click', function () {
               openPopup(url);
             });
           }
         });
       })
-      .catch(err => console.error('Erreur chargement CSV:', err));
+      .catch(err => {
+        console.error('Erreur chargement CSV:', err);
+        alert('Erreur chargement des événements. Vérifiez la console.');
+      });
 
-    // Fermer popup au clic hors iframe si besoin (optionnel)
+    // Fermer popup au clic hors iframe
     popupModal.onclick = (e) => {
       if (e.target === popupModal) {
         popupClose.onclick();
@@ -127,4 +131,3 @@
   </script>
 </body>
 </html>
-
